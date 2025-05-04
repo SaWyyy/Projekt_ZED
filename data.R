@@ -1,5 +1,6 @@
 # Ładowanie wymaganego pakietu
 library(quantmod)
+library(writexl)
 
 # Zakres dat
 start_date <- as.Date("2024-01-01")
@@ -30,3 +31,6 @@ get_stock_data <- function(symbol) {
 
 # Pobierz dane i połącz
 stock_data <- do.call(rbind, Filter(Negate(is.null), lapply(symbols, get_stock_data)))
+
+# Eksport do pliku Excel
+write_xlsx(stock_data, path = "stock_data.xlsx")
