@@ -7,8 +7,8 @@ library(tidyr)
 
 
 symbol_to_name <- data.frame(
-  Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC"), # przykładowe symbole
-  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "SNP500") # pełne nazwy
+  Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX"), # przykładowe symbole
+  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "SNP500", "Indeks strachu") # pełne nazwy
 )
 
 # Funkcja do obliczania procentowej zmiany
@@ -61,49 +61,63 @@ server <- function(input, output, session) {
   # Obliczanie danych do wykresu po kliknięciu przycisku
   plot_data <- eventReactive(input$update, {
     data <- calculate_percent_change(combined_data, input$start_date, input$end_date)
-    
-    # Sortowanie według zmiany procentowej malejąco
-    data <- data %>% arrange(desc(Percent_Change))
-    
+    data$Start_Date <- input$start_date
+    data$End_Date <- input$end_date
     return(data)
   })
+  
   
   # Renderowanie interaktywnego wykresu
   output$dumbbell_plot <- renderPlotly({
     data <- plot_data()
     
-    # Sortujemy dane względem Percent_Change
+    # Sortowanie danych względem Percent_Change
     data <- data %>%
       arrange(Percent_Change) %>%
-      mutate(Symbol = factor(Symbol, levels = Symbol))  # Ustawiamy kolejność jako factor levels
+      mutate(Symbol = factor(Symbol, levels = Symbol))  # Ustawienie kolejności jako factor levels
     
+    # Tworzenie wykresu
     p <- ggplot(data, aes(y = Symbol)) +
+      # Segmenty (linie) z odpowiednim kolorowaniem
       geom_segment(aes(x = 0, xend = Percent_Change,
                        yend = Symbol,
                        color = ifelse(Percent_Change >= 0, "Wzrost", "Spadek")),
-                   size = 1, alpha = 0.5) +
+                   size = 3, alpha = 0.5) + 
+      # Punkty początkowe (0) w szarym kolorze
       geom_point(aes(x = 0, y = Symbol), color = "grey", size = 3) +
+      # Punkty końcowe z kolorowaniem zależnym od zmiany procentowej
       geom_point(aes(x = Percent_Change, y = Symbol,
                      color = ifelse(Percent_Change >= 0, "Wzrost", "Spadek"),
                      text = paste0(
-                       "Spółka: ", Symbol, "<br>",
+                       Symbol, "<br>",
                        "Start: ", sprintf("%.2f", Start_Close), "<br>",
                        "Koniec: ", sprintf("%.2f", End_Close), "<br>",
                        "Zmiana: ", sprintf("%.2f%%", Percent_Change)
                      )),
                  size = 3) +
-      geom_text(aes(x = Percent_Change, y = Symbol,
-                    label = sprintf("%.2f%%", Percent_Change)),
-                nudge_y = 0.4, size = 3.5, color = "black") +
-      scale_color_manual(values = c("Wzrost" = "green", "Spadek" = "red")) +
-      labs(title = paste("Procentowa zmiana cen od", input$start_date, "do", input$end_date),
+      # Wyświetlanie procentowej zmiany w kolorach darkgreen lub darkred
+      geom_text(aes(x = ifelse(Percent_Change >= 0, Percent_Change + 7, Percent_Change - 7),
+                    y = Symbol,
+                    label = sprintf("%.2f%%", Percent_Change),
+                    color = ifelse(Percent_Change >= 0, "darkgreen", "darkred")), 
+                size = 3.5, 
+                vjust = 0.5,  # Ustawienie pionowego wyrównania
+                hjust = ifelse(data$Percent_Change >= 0, 0, 1)) +  # Ustawienie poziomego wyrównania
+      # Definicja kolorów dla segmentów i tekstu
+      scale_color_manual(values = c("Wzrost" = "green", "Spadek" = "red",
+                                    "darkgreen" = "darkgreen", "darkred" = "darkred")) +
+      # Tytuł wykresu i oznaczenia osi
+      labs(title = paste("Procentowa zmiana cen od", plot_data()[["Start_Date"]][1], "do", plot_data()[["End_Date"]][1]),
            x = "",
            y = "") +
       theme_minimal() +
-      theme(legend.position = "none")
+      theme(legend.position = "none",
+            axis.title.x = element_blank(),     # Usunięcie tytułu osi X
+            axis.text.x = element_blank())
     
     ggplotly(p, tooltip = "text")
   })
+  
 }
 
 

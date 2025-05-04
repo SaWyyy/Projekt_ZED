@@ -30,6 +30,7 @@ get_market_data <- function(symbol) {
   })
 }
 
+
 # Pobierz dane i połącz
 market_data <- do.call(rbind, Filter(Negate(is.null), lapply(symbols, get_market_data)))
 
