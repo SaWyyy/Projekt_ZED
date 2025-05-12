@@ -4,7 +4,7 @@ library(ggplot2)
 library(plotly)
 library(dplyr)
 library(tidyr)
-
+library(corrplot)
 
 symbol_to_name <- data.frame(
   Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX", "^HSI"), # przykładowe symbole
@@ -52,6 +52,20 @@ ui <- fluidPage(
         arrow: true
       });
     });
+  ")),
+    tags$style(HTML("
+    .btn-red {
+      background-color: red;
+      color: white;
+      border-color: darkred;
+      margin: 5px;
+      transition-duration: 0.3s;
+    }
+    .btn-red:hover {
+      background-color: darkred;
+      color: white;
+      transition-duration: 0.3s;
+    }
   "))
   ),
   titlePanel("Procentowa zmiana cen aktywów w wybranym okresie"),
@@ -67,13 +81,15 @@ ui <- fluidPage(
                 max = as.Date("2025-04-20")),
       actionButton("update", "Aktualizuj wykres"),
       tags$h4("Wybierz wydarzenie:"),
-      actionButton("event_trump_attack", "Zamach na Trumpa",
-                   title = "14–16 lipca 2024: Próba zamachu na Trumpa"),
-      actionButton("event_trump_election", "Wybory Trumpa"),
-      actionButton("event_trade_war", "Wojna celna"),
-      actionButton("event_rates_decision", "Decyzja ws. stóp (XII)"),
-      actionButton("event_japan_hike", "Podwyżka stóp w Japonii"),
-      actionButton("event_deepseek", "Ogłoszenie DeepSeek"),
+      actionButton("event_trump_attack", "Zamach na Trumpa", class = "btn-red"),
+      actionButton("event_trump_election", "Wybory USA", class = "btn-red"),
+      actionButton("event_trade_war", "Wojna celna", class = "btn-red"),
+      actionButton("event_rates_decision", "Decyzja ws. stóp (XII)", class = "btn-red"),
+      actionButton("event_japan_hike", "Podwyżka stóp w Japonii", class = "btn-red"),
+      actionButton("event_deepseek", "Ogłoszenie DeepSeek", class = "btn-red"),
+      # Dodajemy macierz korelacji pod przyciskami w sidebarPanel
+      tags$h4("Macierz korelacji (pełny zakres danych):"),
+      plotOutput("correlation_plot", height = "600px")
     ),
     mainPanel(
       plotlyOutput("dumbbell_plot")
@@ -86,7 +102,6 @@ ui <- fluidPage(
     }, 100);
   });
   "))
-  
 )
 
 # Serwer Shiny
@@ -197,6 +212,37 @@ server <- function(input, output, session) {
     ggplotly(p, tooltip = "text")
   })
   
+  output$correlation_plot <- renderPlot({
+    company_data <- combined_data %>%
+      select(Date, Symbol, Close) %>%
+      pivot_wider(names_from = Symbol, values_from = Close) %>%
+      arrange(Date)
+    
+    # Sprawdzenie, czy są dane
+    if (ncol(company_data) < 3) {
+      plot.new()
+      text(0.5, 0.5, "Za mało danych do wygenerowania korelacji", cex = 1.5)
+    } else {
+      # Macierz korelacji
+      correlation_matrix <- cor(company_data[,-1], use = "pairwise.complete.obs")
+      
+      # Podstawienie pełnych nazw (jeśli dostępne)
+      symbol_map <- setNames(symbol_to_name$Name, symbol_to_name$Symbol)
+      
+      colnames(correlation_matrix) <- ifelse(colnames(correlation_matrix) %in% names(symbol_map),
+                                             symbol_map[colnames(correlation_matrix)],
+                                             colnames(correlation_matrix))
+      rownames(correlation_matrix) <- colnames(correlation_matrix)
+      
+      # Definicja palety czerwono-zielonej
+      col_palette <- colorRampPalette(c("red", "white", "green"))(200)
+      
+      # Rysowanie wykresu
+      corrplot::corrplot(correlation_matrix, method = "color", type = "full",
+                         tl.col = "black", addCoef.col = "black", number.cex = 0.7, col = col_palette)
+      
+    }
+  }, bg = "transparent")
 }
 
 
