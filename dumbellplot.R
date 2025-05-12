@@ -7,8 +7,29 @@ library(tidyr)
 library(corrplot)
 
 symbol_to_name <- data.frame(
-  Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX", "^HSI"), # przykładowe symbole
-  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "S&P500", "Indeks strachu", "Indeks chiński") # pełne nazwy
+  Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX", "^HSI", "MARA"), # przykładowe symbole
+  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "S&P500", "Indeks strachu", "Indeks chiński", "MARA") # pełne nazwy
+)
+
+# Dane o wydarzeniach wojny celnej
+events <- data.frame(
+  Date = as.Date(c(
+    "2025-02-01", "2025-02-04", "2025-02-13", "2025-03-04", 
+    "2025-03-10", "2025-03-12", "2025-04-02", "2025-05-08", 
+    "2025-05-12", "2025-05-12"
+  )),
+  Description = c(
+    "Początek wojny celnej: Trump ogłasza 10% cło na towary z Chin, 25% na Kanadę i Meksyk.",
+    "Chiny odpowiadają: 15% cła na węgiel i LNG, 10% na ropę, maszyny rolnicze, samochody.",
+    "Zapowiedź 'ceł wzajemnych': USA planuje dopasować cła do stawek innych krajów.",
+    "Eskalacja ceł: USA podnosi cła na Chiny do 20%, 25% na Kanadę i Meksyk; Chiny odpowiadają.",
+    "Chiny: Dodatkowe 15% cła na drób, wieprzowinę, soję, wołowinę; spadki na rynkach.",
+    "Cła na stal i aluminium: USA podnosi cła do 25%; UE odpowiada cłami na $28 mld.",
+    "'Dzień Wyzwolenia': USA wprowadza 34% cła na Chiny; Chiny odpowiadają restrykcjami.",
+    "Umowa z Wielką Brytanią: Obniżenie ceł na samochody, zniesienie ceł na stal i wołowinę.",
+    "Deeskalacja z Chinami: 90-dniowe zawieszenie ceł; USA redukuje cła z 145% do 30%.",
+    "'Całkowity reset': Trump ogłasza reset stosunków handlowych z Chinami po negocjacjach."
+  )
 )
 
 # Funkcja do obliczania procentowej zmiany
@@ -160,19 +181,19 @@ server <- function(input, output, session) {
     return(data)
   })
   
-  # Obliczanie danych do wykresu liniowego (znormalizowane ceny dla wojny cłowej)
+  # Obliczanie danych do wykresu liniowego (znormalizowane ceny dla wojny cłowej, wszystkie aktywa)
   line_plot_data <- eventReactive(input$update, {
     filtered_data <- combined_data %>%
-      filter(Date >= as.Date("2025-02-01") & Date <= as.Date("2025-04-20")) %>% # Stały okres wojny cłowej
+      filter(Date >= as.Date("2025-02-01") & Date <= as.Date("2025-05-12")) %>% # Stały okres wojny cłowej
       left_join(symbol_to_name, by = "Symbol") %>%
-      mutate(Symbol = ifelse(is.na(Name), Symbol, Name)) %>%
+      mutate(Symbol_Display = ifelse(is.na(Name), Symbol, Name)) %>% # Zachowujemy oryginalny Symbol i dodajemy nazwę do wyświetlania
       group_by(Symbol) %>%
       mutate(
         Min_Close = min(Close, na.rm = TRUE), # Minimalna cena w okresie
         Max_Close = max(Close, na.rm = TRUE), # Maksymalna cena w okresie
         Normalized_Close = (Close - Min_Close) / (Max_Close - Min_Close) # Normalizacja do skali 0-1
       ) %>%
-      select(Date, Symbol, Normalized_Close, Close) %>%
+      select(Date, Symbol, Symbol_Display, Normalized_Close, Close) %>%
       ungroup()
     return(filtered_data)
   })
@@ -230,20 +251,50 @@ server <- function(input, output, session) {
     ggplotly(p, tooltip = "text")
   })
   
-  # Renderowanie wykresu liniowego (znormalizowane ceny)
+  # Renderowanie wykresu liniowego (znormalizowane ceny dla wojny cłowej, z pionowymi liniami)
   output$line_plot <- renderPlotly({
     data <- line_plot_data()
     
-    # Tworzenie wykresu liniowego
-    p <- ggplot(data, aes(x = Date, y = Normalized_Close, color = Symbol, group = Symbol)) +
+    # Tworzenie wykresu liniowego z pionowymi liniami
+    p <- ggplot(data, aes(x = Date, y = Normalized_Close, color = Symbol_Display, group = Symbol_Display)) +
       geom_line(size = 1) +
-      labs(title = paste("Znormalizowane ceny aktywów od", input$start_date, "do", input$end_date),
+      # Dodanie pionowych linii dla wydarzeń
+      geom_vline(data = events, aes(xintercept = as.numeric(Date), 
+                                    text = paste0(format(Date, "%Y-%m-%d"), "<br>", Description)),
+                 linetype = "dashed", color = "black", size = 0.5, alpha = 0.7) +
+      labs(title = "Znormalizowane ceny aktywów (Wojna celna: 1 luty 2025 - 12 maja 2025)",
            x = "Data",
            y = "Znormalizowana cena (0-1)") +
       theme_minimal() +
-      theme(legend.position = "bottom")
+      theme(legend.position = "right") # Legenda po prawej stronie
     
-    ggplotly(p, tooltip = c("Symbol", "Date", "Normalized_Close", "Close"))
+    # Konwersja do plotly
+    plot <- ggplotly(p, tooltip = c("Symbol_Display", "Date", "Normalized_Close", "Close", "text"))
+    
+    # Modyfikacja widoczności linii w legendzie
+    default_visible <- c("Złoto", "S&P500", "Indeks strachu") # Pełne nazwy domyślnie widoczne
+    for (i in seq_along(plot$x$data)) {
+      # Sprawdzamy, czy ślad jest linią aktywu (ma nazwę w pełnych nazwach)
+      if (!is.null(plot$x$data[[i]]$name) && plot$x$data[[i]]$name %in% symbol_to_name$Name) {
+        symbol_name <- plot$x$data[[i]]$name
+        plot$x$data[[i]]$visible <- if (symbol_name %in% default_visible) TRUE else "legendonly"
+      }
+    }
+    
+    # Ustawienie układu wykresu
+    plot <- plot %>% 
+      layout(
+        legend = list(
+          title = list(text = "Aktywa"),
+          orientation = "v",
+          x = 1.05, # Legenda po prawej stronie
+          y = 0.5
+        ),
+        # Zapewnienie, że tooltipy dla vline działają
+        hovermode = "x unified"
+      )
+    
+    return(plot)
   })
   
   # Renderowanie macierzy korelacji
