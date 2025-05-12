@@ -7,7 +7,7 @@ start_date <- as.Date("2024-01-01")
 end_date <- as.Date("2025-04-20")
 
 # Symbole aktywów (akcje i indeksy/aktywa)
-symbols <- c("^GSPC", "^IXIC", "^VIX", "DX-Y.NYB", "BTC-USD", "EEM", "GC=F")
+symbols <- c("^GSPC", "^IXIC", "^VIX", "DX-Y.NYB", "BTC-USD", "EEM", "GC=F", "^HSI")
 
 # Funkcja do pobierania danych
 get_market_data <- function(symbol) {

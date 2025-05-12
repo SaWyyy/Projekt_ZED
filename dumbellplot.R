@@ -7,8 +7,8 @@ library(tidyr)
 
 
 symbol_to_name <- data.frame(
-  Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX"), # przykładowe symbole
-  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "SNP500", "Indeks strachu") # pełne nazwy
+  Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX", "^HSI"), # przykładowe symbole
+  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "S&P500", "Indeks strachu", "Indeks chiński") # pełne nazwy
 )
 
 # Funkcja do obliczania procentowej zmiany
@@ -37,6 +37,23 @@ combined_data <- bind_rows(stock_data, market_data)
 
 # Interfejs użytkownika Shiny
 ui <- fluidPage(
+  tags$head(
+    tags$script(src = "https://unpkg.com/@popperjs/core@2"),
+    tags$script(src = "https://unpkg.com/tippy.js@6"),
+    tags$link(rel = "stylesheet", href = "https://unpkg.com/tippy.js@6/animations/scale.css"),
+    tags$script(HTML("
+    Shiny.addCustomMessageHandler('addTooltip', function(data) {
+      tippy('#' + data.id, {
+        content: data.text,
+        placement: data.placement || 'top',
+        animation: 'scale',
+        theme: 'light-border',
+        delay: [100, 100],
+        arrow: true
+      });
+    });
+  "))
+  ),
   titlePanel("Procentowa zmiana cen aktywów w wybranym okresie"),
   sidebarLayout(
     sidebarPanel(
@@ -48,16 +65,76 @@ ui <- fluidPage(
                 value = as.Date("2025-04-20"), 
                 min = as.Date("2024-01-01"), 
                 max = as.Date("2025-04-20")),
-      actionButton("update", "Aktualizuj wykres")
+      actionButton("update", "Aktualizuj wykres"),
+      tags$h4("Wybierz wydarzenie:"),
+      actionButton("event_trump_attack", "Zamach na Trumpa",
+                   title = "14–16 lipca 2024: Próba zamachu na Trumpa"),
+      actionButton("event_trump_election", "Wybory Trumpa"),
+      actionButton("event_trade_war", "Wojna celna"),
+      actionButton("event_rates_decision", "Decyzja ws. stóp (XII)"),
+      actionButton("event_japan_hike", "Podwyżka stóp w Japonii"),
+      actionButton("event_deepseek", "Ogłoszenie DeepSeek"),
     ),
     mainPanel(
       plotlyOutput("dumbbell_plot")
     )
-  )
+  ),
+  tags$script(HTML("
+  Shiny.addCustomMessageHandler('clickUpdate', function(message) {
+    setTimeout(function() {
+      document.getElementById('update').click();
+    }, 100);
+  });
+  "))
+  
 )
 
 # Serwer Shiny
 server <- function(input, output, session) {
+  observe({
+    session$sendCustomMessage("addTooltip", list(id = "event_trump_attack", text = "Zamach na Trumpa – 14–16 lipca 2024"))
+    session$sendCustomMessage("addTooltip", list(id = "event_trump_election", text = "Trump wygrywa wybory – 4–11 listopada 2024"))
+    session$sendCustomMessage("addTooltip", list(id = "event_rates_decision", text = "Decyzja Fed ws. stóp % – 17–19 grudnia 2024"))
+    session$sendCustomMessage("addTooltip", list(id = "event_deepseek", text = "Ogłoszenie DeepSeek – 27 stycznia 2025"))
+    session$sendCustomMessage("addTooltip", list(id = "event_trade_war", text = "Początek wojny cłowej – 1 luty 2025"))
+    session$sendCustomMessage("addTooltip", list(id = "event_japan_hike", text = "Podwyżka stóp procentowych w Japonii – 31 lipca-6 sierpnia 2024"))
+  })
+  observeEvent(input$event_trump_attack, {
+    updateDateInput(session, "start_date", value = as.Date("2024-07-14"))
+    updateDateInput(session, "end_date", value = as.Date("2024-07-16"))
+    session$sendCustomMessage(type = "clickUpdate", message = list())
+  })
+  
+  observeEvent(input$event_trump_election, {
+    updateDateInput(session, "start_date", value = as.Date("2024-11-04"))
+    updateDateInput(session, "end_date", value = as.Date("2024-11-11"))
+    session$sendCustomMessage(type = "clickUpdate", message = list())
+  })
+  
+  observeEvent(input$event_trade_war, {
+    updateDateInput(session, "start_date", value = as.Date("2025-02-01"))
+    updateDateInput(session, "end_date", value = as.Date("2025-04-20"))
+    session$sendCustomMessage(type = "clickUpdate", message = list())
+  })
+  
+  observeEvent(input$event_rates_decision, {
+    updateDateInput(session, "start_date", value = as.Date("2024-12-17"))
+    updateDateInput(session, "end_date", value = as.Date("2024-12-19"))
+    session$sendCustomMessage(type = "clickUpdate", message = list())
+  })
+  
+  observeEvent(input$event_japan_hike, {
+    updateDateInput(session, "start_date", value = as.Date("2024-07-31"))
+    updateDateInput(session, "end_date", value = as.Date("2024-08-06"))
+    session$sendCustomMessage(type = "clickUpdate", message = list())
+  })
+  
+  observeEvent(input$event_deepseek, {
+    updateDateInput(session, "start_date", value = as.Date("2025-01-24"))
+    updateDateInput(session, "end_date", value = as.Date("2025-01-27"))
+    session$sendCustomMessage(type = "clickUpdate", message = list())
+  })
+  
   # Obliczanie danych do wykresu po kliknięciu przycisku
   plot_data <- eventReactive(input$update, {
     data <- calculate_percent_change(combined_data, input$start_date, input$end_date)
@@ -96,7 +173,9 @@ server <- function(input, output, session) {
                      )),
                  size = 3) +
       # Wyświetlanie procentowej zmiany w kolorach darkgreen lub darkred
-      geom_text(aes(x = ifelse(Percent_Change >= 0, Percent_Change + 7, Percent_Change - 7),
+      geom_text(aes(x = ifelse(Percent_Change >= 0,
+                               Percent_Change + 0.06 * max(abs(data$Percent_Change)),
+                               Percent_Change - 0.06 * max(abs(data$Percent_Change))),
                     y = Symbol,
                     label = sprintf("%.2f%%", Percent_Change),
                     color = ifelse(Percent_Change >= 0, "darkgreen", "darkred")), 
