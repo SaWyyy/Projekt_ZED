@@ -92,7 +92,9 @@ ui <- fluidPage(
       plotOutput("correlation_plot", height = "600px")
     ),
     mainPanel(
-      plotlyOutput("dumbbell_plot")
+      plotlyOutput("dumbbell_plot"),
+      tags$hr(), # Separator między wykresami
+      plotlyOutput("line_plot") # Nowy wykres liniowy
     )
   ),
   tags$script(HTML("
@@ -115,8 +117,8 @@ server <- function(input, output, session) {
     session$sendCustomMessage("addTooltip", list(id = "event_japan_hike", text = "Podwyżka stóp procentowych w Japonii – 31 lipca-6 sierpnia 2024"))
   })
   observeEvent(input$event_trump_attack, {
-    updateDateInput(session, "start_date", value = as.Date("2024-07-14"))
-    updateDateInput(session, "end_date", value = as.Date("2024-07-16"))
+    updateDateInput(session, "start_date", value = as.Date("2024-07-15"))
+    updateDateInput(session, "end_date", value = as.Date("2024-07-17"))
     session$sendCustomMessage(type = "clickUpdate", message = list())
   })
   
@@ -158,6 +160,22 @@ server <- function(input, output, session) {
     return(data)
   })
   
+  # Obliczanie danych do wykresu liniowego (znormalizowane ceny dla wojny cłowej)
+  line_plot_data <- eventReactive(input$update, {
+    filtered_data <- combined_data %>%
+      filter(Date >= as.Date("2025-02-01") & Date <= as.Date("2025-04-20")) %>% # Stały okres wojny cłowej
+      left_join(symbol_to_name, by = "Symbol") %>%
+      mutate(Symbol = ifelse(is.na(Name), Symbol, Name)) %>%
+      group_by(Symbol) %>%
+      mutate(
+        Min_Close = min(Close, na.rm = TRUE), # Minimalna cena w okresie
+        Max_Close = max(Close, na.rm = TRUE), # Maksymalna cena w okresie
+        Normalized_Close = (Close - Min_Close) / (Max_Close - Min_Close) # Normalizacja do skali 0-1
+      ) %>%
+      select(Date, Symbol, Normalized_Close, Close) %>%
+      ungroup()
+    return(filtered_data)
+  })
   
   # Renderowanie interaktywnego wykresu
   output$dumbbell_plot <- renderPlotly({
@@ -212,6 +230,23 @@ server <- function(input, output, session) {
     ggplotly(p, tooltip = "text")
   })
   
+  # Renderowanie wykresu liniowego (znormalizowane ceny)
+  output$line_plot <- renderPlotly({
+    data <- line_plot_data()
+    
+    # Tworzenie wykresu liniowego
+    p <- ggplot(data, aes(x = Date, y = Normalized_Close, color = Symbol, group = Symbol)) +
+      geom_line(size = 1) +
+      labs(title = paste("Znormalizowane ceny aktywów od", input$start_date, "do", input$end_date),
+           x = "Data",
+           y = "Znormalizowana cena (0-1)") +
+      theme_minimal() +
+      theme(legend.position = "bottom")
+    
+    ggplotly(p, tooltip = c("Symbol", "Date", "Normalized_Close", "Close"))
+  })
+  
+  # Renderowanie macierzy korelacji
   output$correlation_plot <- renderPlot({
     company_data <- combined_data %>%
       select(Date, Symbol, Close) %>%
