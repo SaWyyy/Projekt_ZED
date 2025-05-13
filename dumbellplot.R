@@ -5,6 +5,8 @@ library(plotly)
 library(dplyr)
 library(tidyr)
 library(corrplot)
+library(ggrepel)
+
 
 symbol_to_name <- data.frame(
   Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX", "^HSI", "MARA"), # przykładowe symbole
@@ -253,45 +255,136 @@ server <- function(input, output, session) {
   
   # Renderowanie wykresu liniowego (znormalizowane ceny dla wojny cłowej, z pionowymi liniami)
   output$line_plot <- renderPlotly({
+    # Pobierz dane
     data <- line_plot_data()
     
-    # Tworzenie wykresu liniowego z pionowymi liniami
-    p <- ggplot(data, aes(x = Date, y = Normalized_Close, color = Symbol_Display, group = Symbol_Display)) +
-      geom_line(size = 1) +
-      # Dodanie pionowych linii dla wydarzeń
-      geom_vline(data = events, aes(xintercept = as.numeric(Date), 
-                                    text = paste0(format(Date, "%Y-%m-%d"), "<br>", Description)),
-                 linetype = "dashed", color = "black", size = 0.5, alpha = 0.7) +
-      labs(title = "Znormalizowane ceny aktywów (Wojna celna: 1 luty 2025 - 12 maja 2025)",
-           x = "Data",
-           y = "Znormalizowana cena (0-1)") +
-      theme_minimal() +
-      theme(legend.position = "right") # Legenda po prawej stronie
+    # Upewnij się, że Date jest w formacie POSIXct
+    data$Date <- as.POSIXct(data$Date, tz = "UTC")
+    events$Date <- as.POSIXct(events$Date, tz = "UTC")
     
-    # Konwersja do plotly
-    plot <- ggplotly(p, tooltip = c("Symbol_Display", "Date", "Normalized_Close", "Close", "text"))
+    # Oblicz maksymalną wartość Y
+    max_y <- max(data$Normalized_Close, na.rm = TRUE)
     
-    # Modyfikacja widoczności linii w legendzie
-    default_visible <- c("Złoto", "S&P500", "Indeks strachu") # Pełne nazwy domyślnie widoczne
+    # Debugowanie: Sprawdź dane
+    print("Struktura data:")
+    print(str(data))
+    print("Struktura events:")
+    print(str(events))
+    print("Maksymalna wartość Y:")
+    print(max_y)
+    print("Unikalne symbole w data$Symbol_Display:")
+    print(unique(data$Symbol_Display))
+    print("symbol_to_name:")
+    print(symbol_to_name)
+    
+    # Inicjalizacja wykresu plotly
+    plot <- plot_ly()
+    
+    # Dodanie linii dla każdego Symbol_Display
+    unique_symbols <- unique(data$Symbol_Display)
+    colors <- RColorBrewer::brewer.pal(max(3, length(unique_symbols)), "Set1")  # Paleta kolorów
+    
+    for (i in seq_along(unique_symbols)) {
+      symbol_data <- data %>% filter(Symbol_Display == unique_symbols[i])
+      # Mapowanie Symbol na Name dla legendy
+      symbol_name <- symbol_to_name$Name[symbol_to_name$Symbol == unique_symbols[i]]
+      if (length(symbol_name) == 0) symbol_name <- as.character(unique_symbols[i])  # Fallback
+      plot <- plot %>%
+        add_trace(
+          data = symbol_data,
+          x = ~Date,
+          y = ~Normalized_Close,
+          type = "scatter",
+          mode = "lines",
+          line = list(color = colors[i], width = 2),
+          name = symbol_name,  # Pełna nazwa w legendzie
+          text = ~paste0(
+            "<b>", symbol_name, "</b><br>",
+            "Data: ", format(Date, "%Y-%m-%d"), "<br>",
+            "Cena znorm.: ", round(Normalized_Close, 3)
+          ),
+          hoverinfo = "text",
+          showlegend = TRUE,
+          # Ustaw widoczność już przy dodawaniu śladu
+          visible = if (symbol_name %in% c("Złoto", "S&P500", "Indeks strachu")) TRUE else "legendonly"
+        )
+    }
+    
+    # Dodanie linii pionowych dla wydarzeń
+    for (i in seq_len(nrow(events))) {
+      plot <- plot %>%
+        add_segments(
+          x = events$Date[i],
+          xend = events$Date[i],
+          y = 0,
+          yend = 1,
+          line = list(dash = "dot", color = "rgba(80, 80, 80, 0.9)", width = 1.5),
+          showlegend = FALSE
+        )
+    }
+    
+    # Dodanie adnotacji dla etykiet nad liniami
+    annotations <- lapply(1:nrow(events), function(i) {
+      y_pos <- max_y * (1.05 + 0.05 * (i %% 3))  # Poziomy: 1.05, 1.10, 1.15 * max_y
+      list(
+        x = events$Date[i],
+        y = y_pos,
+        text = format(events$Date[i], "%d.%m"),
+        xref = "x",
+        yref = "y",
+        showarrow = FALSE,
+        xanchor = "center",
+        yanchor = "bottom",
+        font = list(size = 10, color = "black"),
+        bgcolor = "rgba(255, 255, 255, 0.8)",
+        bordercolor = "black",
+        borderpad = 4
+      )
+    })
+    
+    # Debugowanie: Sprawdź adnotacje
+    print("Adnotacje:")
+    print(annotations)
+    
+    # Dodatkowe sprawdzenie widoczności śladów
+    print("Widoczność śladów po dodaniu:")
     for (i in seq_along(plot$x$data)) {
-      # Sprawdzamy, czy ślad jest linią aktywu (ma nazwę w pełnych nazwach)
-      if (!is.null(plot$x$data[[i]]$name) && plot$x$data[[i]]$name %in% symbol_to_name$Name) {
-        symbol_name <- plot$x$data[[i]]$name
-        plot$x$data[[i]]$visible <- if (symbol_name %in% default_visible) TRUE else "legendonly"
+      trace_name <- plot$x$data[[i]]$name
+      if (!is.null(trace_name)) {
+        print(paste("Ślad:", trace_name, "Visible:", plot$x$data[[i]]$visible))
       }
     }
     
     # Ustawienie układu wykresu
     plot <- plot %>% 
       layout(
+        title = list(
+          text = "Znormalizowane ceny aktywów (Wojna celna: 1 luty 2025 - 12 maja 2025)",
+          font = list(size = 14),
+          x = 0.5,
+          xanchor = "center"
+        ),
+        xaxis = list(
+          title = "Data",
+          type = "date",
+          tickformat = "%Y-%m-%d",
+          tickfont = list(size = 10)
+        ),
+        yaxis = list(
+          title = "Znormalizowana cena (0-1)",
+          range = c(0, max_y * 1.2),
+          tickfont = list(size = 10)
+        ),
+        annotations = annotations,
         legend = list(
           title = list(text = "Aktywa"),
           orientation = "v",
-          x = 1.05, # Legenda po prawej stronie
+          x = 1.05,
           y = 0.5
         ),
-        # Zapewnienie, że tooltipy dla vline działają
-        hovermode = "x unified"
+        hovermode = "x unified",
+        plot_bgcolor = "rgba(255, 255, 255, 0.95)",
+        paper_bgcolor = "rgba(255, 255, 255, 0.95)"
       )
     
     return(plot)
