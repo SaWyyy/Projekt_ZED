@@ -10,7 +10,7 @@ library(ggrepel)
 
 symbol_to_name <- data.frame(
   Symbol = c("TSLA", "NVDA", "GC=F", "EEM", "DX-Y.NYB", "DJT", "BTC-USD", "^IXIC", "^GSPC", "^VIX", "^HSI", "MARA"), # przykładowe symbole
-  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Donalda Trumpa", "Bitcoin", "NASDAQ", "S&P500", "Indeks strachu", "Indeks chiński", "MARA") # pełne nazwy
+  Name = c("Tesla", "Nvidia", "Złoto", "Rynki wschodządze", "Siła dolara", "Spółka Trumpa", "Bitcoin", "NASDAQ", "S&P500", "Indeks strachu", "Indeks chiński", "MARA") # pełne nazwy
 )
 
 # Dane o wydarzeniach wojny celnej
@@ -21,16 +21,16 @@ events <- data.frame(
     "2025-05-12", "2025-05-12"
   )),
   Description = c(
-    "Początek wojny celnej: Trump ogłasza 10% cło na towary z Chin, 25% na Kanadę i Meksyk.",
-    "Chiny odpowiadają: 15% cła na węgiel i LNG, 10% na ropę, maszyny rolnicze, samochody.",
-    "Zapowiedź 'ceł wzajemnych': USA planuje dopasować cła do stawek innych krajów.",
-    "Eskalacja ceł: USA podnosi cła na Chiny do 20%, 25% na Kanadę i Meksyk; Chiny odpowiadają.",
-    "Chiny: Dodatkowe 15% cła na drób, wieprzowinę, soję, wołowinę; spadki na rynkach.",
-    "Cła na stal i aluminium: USA podnosi cła do 25%; UE odpowiada cłami na $28 mld.",
-    "'Dzień Wyzwolenia': USA wprowadza 34% cła na Chiny; Chiny odpowiadają restrykcjami.",
-    "Umowa z Wielką Brytanią: Obniżenie ceł na samochody, zniesienie ceł na stal i wołowinę.",
-    "Deeskalacja z Chinami: 90-dniowe zawieszenie ceł; USA redukuje cła z 145% do 30%.",
-    "'Całkowity reset': Trump ogłasza reset stosunków handlowych z Chinami po negocjacjach."
+    "2025-02-01, Początek wojny celnej: Trump ogłasza 10% cło na towary z Chin, 25% na Kanadę i Meksyk.",
+    "2025-02-04, Chiny odpowiadają: 15% cła na węgiel i LNG, 10% na ropę, maszyny rolnicze, samochody.",
+    "2025-02-13, Zapowiedź 'ceł wzajemnych': USA planuje dopasować cła do stawek innych krajów.",
+    "2025-03-04, Eskalacja ceł: USA podnosi cła na Chiny do 20%, 25% na Kanadę i Meksyk; Chiny odpowiadają.",
+    "2025-03-10, Chiny: Dodatkowe 15% cła na drób, wieprzowinę, soję, wołowinę; spadki na rynkach.",
+    "2025-03-12, Cła na stal i aluminium: USA podnosi cła do 25%; UE odpowiada cłami na $28 mld.",
+    "2025-04-02, 'Dzień Wyzwolenia': USA wprowadza 34% cła na Chiny; Chiny odpowiadają restrykcjami.",
+    "2025-05-08, Umowa z Wielką Brytanią: Obniżenie ceł na samochody, zniesienie ceł na stal i wołowinę.",
+    "2025-05-12, Deeskalacja z Chinami: 90-dniowe zawieszenie ceł; USA redukuje cła z 145% do 30%.",
+    "2025-05-12, 'Całkowity reset': Trump ogłasza reset stosunków handlowych z Chinami po negocjacjach."
   ),
   ShortDescription = c(
     "Trump wprowadza cła",
@@ -103,17 +103,17 @@ ui <- fluidPage(
     }
   "))
   ),
-  titlePanel("Procentowa zmiana cen aktywów w wybranym okresie"),
+  titlePanel("Przedstawienie zachowania wybranych instrumentów finansowych z uwzględnieniem największych wydarzeń geopolityczych na świecie z okresu od 1 stycznia 2024 do dnia dzisiejszego z naciskiem na wojnę celną."),
   sidebarLayout(
     sidebarPanel(
       dateInput("start_date", "Data początkowa:", 
                 value = as.Date("2024-01-01"), 
                 min = as.Date("2024-01-01"), 
-                max = as.Date("2025-04-20")),
+                max = as.Date("2025-05-12")),
       dateInput("end_date", "Data końcowa:", 
                 value = as.Date("2025-04-20"), 
                 min = as.Date("2024-01-01"), 
-                max = as.Date("2025-04-20")),
+                max = as.Date("2025-05-12")),
       actionButton("update", "Aktualizuj wykres"),
       tags$h4("Wybierz wydarzenie:"),
       actionButton("event_trump_attack", "Zamach na Trumpa", class = "btn-red"),
@@ -123,8 +123,8 @@ ui <- fluidPage(
       actionButton("event_japan_hike", "Podwyżka stóp w Japonii", class = "btn-red"),
       actionButton("event_deepseek", "Ogłoszenie DeepSeek", class = "btn-red"),
       # Dodajemy macierz korelacji pod przyciskami w sidebarPanel
-      tags$h4("Macierz korelacji (pełny zakres danych):"),
-      plotOutput("correlation_plot", height = "600px")
+      tags$h4("Macierz korelacji przedstawiająca zależność między aktywami giełdowymi z okresu od 1 stycznia 2025 do 12 maja 2025:"),
+      plotOutput("correlation_plot", height = "500px")
     ),
     mainPanel(
       plotlyOutput("dumbbell_plot"),
@@ -165,7 +165,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$event_trade_war, {
     updateDateInput(session, "start_date", value = as.Date("2025-02-01"))
-    updateDateInput(session, "end_date", value = as.Date("2025-04-20"))
+    updateDateInput(session, "end_date", value = as.Date("2025-04-21"))
     session$sendCustomMessage(type = "clickUpdate", message = list())
   })
   
@@ -254,7 +254,7 @@ server <- function(input, output, session) {
       scale_color_manual(values = c("Wzrost" = "green", "Spadek" = "red",
                                     "darkgreen" = "darkgreen", "darkred" = "darkred")) +
       # Tytuł wykresu i oznaczenia osi
-      labs(title = paste("Procentowa zmiana cen od", plot_data()[["Start_Date"]][1], "do", plot_data()[["End_Date"]][1]),
+      labs(title = paste("Procentowa zmiana cen otwarcia i zamknięcia wybranych instrumentów finansowych od", plot_data()[["Start_Date"]][1], "do", plot_data()[["End_Date"]][1], ":"),
            x = "",
            y = "") +
       theme_minimal() +
@@ -294,7 +294,9 @@ server <- function(input, output, session) {
     
     # Dodanie linii dla każdego Symbol_Display
     unique_symbols <- unique(data$Symbol_Display)
-    colors <- RColorBrewer::brewer.pal(max(3, length(unique_symbols)), "Set1")  # Paleta kolorów
+    colors <- colorspace::qualitative_hcl(12, palette = "Dark 3")
+    
+    # Paleta kolorów
     
     for (i in seq_along(unique_symbols)) {
       symbol_data <- data %>% filter(Symbol_Display == unique_symbols[i])
@@ -391,19 +393,19 @@ server <- function(input, output, session) {
     plot <- plot %>% 
       layout(
         title = list(
-          text = "Znormalizowane ceny aktywów (Wojna celna: 1 luty 2025 - 12 maja 2025)",
+          text = "Znormalizowane ceny (przedział 0-1) wybranych instrumentów finansowych wraz z wydarzeniami (Wojna celna: 1 luty 2025 - 12 maja 2025):",
           font = list(size = 14),
           x = 0.5,
           xanchor = "center"
         ),
         xaxis = list(
-          title = "Data",
+          title = "",
           type = "date",
           tickformat = "%Y-%m-%d",
           tickfont = list(size = 10)
         ),
         yaxis = list(
-          title = "Znormalizowana cena (0-1)",
+          title = "",
           range = c(0, max_y * 1.2),  # Zakres Y dostosowany do adnotacji
           tickfont = list(size = 10)
         ),
