@@ -31,6 +31,18 @@ events <- data.frame(
     "Umowa z Wielką Brytanią: Obniżenie ceł na samochody, zniesienie ceł na stal i wołowinę.",
     "Deeskalacja z Chinami: 90-dniowe zawieszenie ceł; USA redukuje cła z 145% do 30%.",
     "'Całkowity reset': Trump ogłasza reset stosunków handlowych z Chinami po negocjacjach."
+  ),
+  ShortDescription = c(
+    "Trump wprowadza cła",
+    "Chiny odpowiadają cłami",
+    "Zapowiedź ceł wzajemnych",
+    "Eskalacja ceł USA-Chiny",
+    "Chiny cła żywność",
+    "Cła stal aluminium",
+    "Dzień Wyzwolenia cła",
+    "Umowa Wielka Brytania",
+    "Deeskalacja ceł Chiny",
+    "Reset handlu Chiny"
   )
 )
 
@@ -286,9 +298,14 @@ server <- function(input, output, session) {
     
     for (i in seq_along(unique_symbols)) {
       symbol_data <- data %>% filter(Symbol_Display == unique_symbols[i])
+      
       # Mapowanie Symbol na Name dla legendy
       symbol_name <- symbol_to_name$Name[symbol_to_name$Symbol == unique_symbols[i]]
       if (length(symbol_name) == 0) symbol_name <- as.character(unique_symbols[i])  # Fallback
+      
+      # Dodajemy kolumnę do danych, aby była dostępna w `text = ~...`
+      symbol_data$Symbol_Name <- symbol_name
+      
       plot <- plot %>%
         add_trace(
           data = symbol_data,
@@ -297,48 +314,63 @@ server <- function(input, output, session) {
           type = "scatter",
           mode = "lines",
           line = list(color = colors[i], width = 2),
-          name = symbol_name,  # Pełna nazwa w legendzie
+          name = symbol_name,
           text = ~paste0(
-            "<b>", symbol_name, "</b><br>",
+            "<b>", Symbol_Name, "</b><br>",
             "Data: ", format(Date, "%Y-%m-%d"), "<br>",
             "Cena znorm.: ", round(Normalized_Close, 3)
           ),
           hoverinfo = "text",
           showlegend = TRUE,
-          # Ustaw widoczność już przy dodawaniu śladu
           visible = if (symbol_name %in% c("Złoto", "S&P500", "Indeks strachu")) TRUE else "legendonly"
         )
     }
     
-    # Dodanie linii pionowych dla wydarzeń
+    
+    # Dodanie linii pionowych o różnych wysokościach
+    segment_heights <- seq(0.3, 1.0, length.out = nrow(events))  # Wysokości od 0.2 do 0.6
     for (i in seq_len(nrow(events))) {
       plot <- plot %>%
         add_segments(
           x = events$Date[i],
           xend = events$Date[i],
           y = 0,
-          yend = 1,
+          yend = segment_heights[i],  # Różne wysokości segmentów
           line = list(dash = "dot", color = "rgba(80, 80, 80, 0.9)", width = 1.5),
           showlegend = FALSE
         )
     }
     
-    # Dodanie adnotacji dla etykiet nad liniami
+    # Funkcja do skracania opisów (już 3 słowa, więc nie zmieniamy)
+    shorten_description <- function(desc) desc  # Używamy ShortDescription
+    
+    # Dodanie adnotacji z linią wskazującą na segment
     annotations <- lapply(1:nrow(events), function(i) {
-      y_pos <- max_y * (1.05 + 0.05 * (i %% 3))  # Poziomy: 1.05, 1.10, 1.15 * max_y
+      y_pos <- segment_heights[i] + 0.01  # Adnotacja tuż nad segmentem
+      x_shift <- ifelse(duplicated(events$Date[1:i]) | duplicated(events$Date[1:i], fromLast = TRUE), 
+                        ifelse(i %% 2 == 0, -20, 20), 0)  # Przesunięcie dla dat zduplikowanych
       list(
         x = events$Date[i],
         y = y_pos,
-        text = format(events$Date[i], "%d.%m"),
+        text = shorten_description(events$ShortDescription[i]),  # 3-słowowe opisy
         xref = "x",
         yref = "y",
-        showarrow = FALSE,
         xanchor = "center",
+        xshift = x_shift,  # Przesunięcie w poziomie dla uniknięcia nakładania
         yanchor = "bottom",
         font = list(size = 10, color = "black"),
         bgcolor = "rgba(255, 255, 255, 0.8)",
         bordercolor = "black",
-        borderpad = 4
+        borderpad = 4,
+        width = 150,
+        align = "center",
+        showarrow = TRUE,  # Włączenie strzałki
+        ax = 0,  # Strzałka w dół
+        ay = -30,  # Długość strzałki (od adnotacji do segmentu)
+        arrowhead = 1,  # Styl strzałki
+        arrowsize = 1,
+        hovertext = events$Description[i],  # Pełny opis w podpowiedzi
+        hoverinfo = "text"
       )
     })
     
@@ -346,7 +378,7 @@ server <- function(input, output, session) {
     print("Adnotacje:")
     print(annotations)
     
-    # Dodatkowe sprawdzenie widoczności śladów
+    # Debugowanie widoczności śladów
     print("Widoczność śladów po dodaniu:")
     for (i in seq_along(plot$x$data)) {
       trace_name <- plot$x$data[[i]]$name
@@ -372,7 +404,7 @@ server <- function(input, output, session) {
         ),
         yaxis = list(
           title = "Znormalizowana cena (0-1)",
-          range = c(0, max_y * 1.2),
+          range = c(0, max_y * 1.2),  # Zakres Y dostosowany do adnotacji
           tickfont = list(size = 10)
         ),
         annotations = annotations,
@@ -393,6 +425,7 @@ server <- function(input, output, session) {
   # Renderowanie macierzy korelacji
   output$correlation_plot <- renderPlot({
     company_data <- combined_data %>%
+      filter(Date >= as.Date("2025-01-01")) %>%
       select(Date, Symbol, Close) %>%
       pivot_wider(names_from = Symbol, values_from = Close) %>%
       arrange(Date)
