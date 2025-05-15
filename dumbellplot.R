@@ -106,6 +106,14 @@ ui <- fluidPage(
       background-color: #2c3e50;
       color: white;
     }
+    .box-section {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+      background-color: #f9f9f9;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
   "))
   ),
   titlePanel("Przedstawienie zachowania wybranych instrumentów finansowych z uwzględnieniem największych wydarzeń geopolityczych na świecie z okresu od 1 stycznia 2024 do dnia dzisiejszego z naciskiem na wojnę celną."),
@@ -119,7 +127,7 @@ ui <- fluidPage(
                 value = as.Date("2025-04-20"), 
                 min = as.Date("2024-01-01"), 
                 max = as.Date("2025-05-12")),
-      actionButton("update", "Aktualizuj wykres"),
+      actionButton("update", "Aktualizuj wykres", class = "btn-red"),
       tags$h4("Wybierz wydarzenie:"),
       actionButton("event_trump_attack", "Zamach na Trumpa", class = "btn-red"),
       actionButton("event_trump_election", "Wybory USA", class = "btn-red"),
@@ -128,13 +136,15 @@ ui <- fluidPage(
       actionButton("event_japan_hike", "Podwyżka stóp w Japonii", class = "btn-red"),
       actionButton("event_deepseek", "Ogłoszenie DeepSeek", class = "btn-red"),
       # Dodajemy macierz korelacji pod przyciskami w sidebarPanel
-      tags$h4("Macierz korelacji przedstawiająca zależność między aktywami giełdowymi z okresu od 1 stycznia 2025 do 12 maja 2025:"),
+      tags$h4("Macierz korelacji przedstawiająca zależność między aktywami giełdowymi z okresu od 1 stycznia 2025 do 12 maja 2025. Kolor zielony oznacza silną zależność między dwoma aktywami, czerwony - odwrotną, natomiast biały - brak zależności"),
       plotOutput("correlation_plot", height = "500px")
     ),
     mainPanel(
-      plotlyOutput("dumbbell_plot"),
-      tags$hr(), # Separator między wykresami
-      plotlyOutput("line_plot") # Nowy wykres liniowy
+      div(class = "boxed-section",
+          plotlyOutput("dumbbell_plot"),
+          tags$hr(),
+          plotlyOutput("line_plot")
+      )
     )
   ),
   tags$script(HTML("
@@ -259,7 +269,7 @@ server <- function(input, output, session) {
       scale_color_manual(values = c("Wzrost" = "green", "Spadek" = "red",
                                     "darkgreen" = "darkgreen", "darkred" = "darkred")) +
       # Tytuł wykresu i oznaczenia osi
-      labs(title = paste("Procentowa zmiana cen otwarcia i zamknięcia wybranych instrumentów finansowych od", plot_data()[["Start_Date"]][1], "do", plot_data()[["End_Date"]][1], ":"),
+      labs(title = paste("Procentowa zmiana cen otwarcia (początek giełdy w danym dniu) i zamknięcia (zakończenie giełdy w danym dniu)\nwybranych instrumentów finansowych od", plot_data()[["Start_Date"]][1], "do", plot_data()[["End_Date"]][1], ":"),
            x = "",
            y = "") +
       theme_minimal() +
@@ -267,7 +277,11 @@ server <- function(input, output, session) {
             axis.title.x = element_blank(),     # Usunięcie tytułu osi X
             axis.text.x = element_blank())
     
-    ggplotly(p, tooltip = "text")
+    ggplotly(p, tooltip = "text")%>%
+    layout(
+      plot_bgcolor = 'rgba(0,0,0,0)',
+      paper_bgcolor = 'rgba(0,0,0,0)'
+    )
   })
   
   # Renderowanie wykresu liniowego (znormalizowane ceny dla wojny cłowej, z pionowymi liniami)
@@ -422,8 +436,8 @@ server <- function(input, output, session) {
           y = 0.5
         ),
         hovermode = "x unified",
-        plot_bgcolor = "rgba(255, 255, 255, 0.95)",
-        paper_bgcolor = "rgba(255, 255, 255, 0.95)"
+        plot_bgcolor = "rgba(0, 0, 0, 0)",    # transparentne tło wykresu
+        paper_bgcolor = "rgba(0, 0, 0, 0)"
       )
     
     return(plot)

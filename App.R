@@ -5,8 +5,8 @@ source("dumbellplot.R")  # zakładając, że definiuje ui i server
 
 
 ui <- navbarPage(
-  "My Dashboard",
-  tabPanel("DATA SET", 
+  "Dashboard giełda",
+  tabPanel("Wprowadzenie", 
            fluidPage(
              # Osadzenie stylów CSS
              tags$style(HTML("
@@ -52,26 +52,39 @@ ui <- navbarPage(
               .sub-section {
                 margin-left: 20px;
               }
-              .download-button {
-                background-color: #4CAF50;
-                color: white;
-                padding: 12px 24px;
-                text-align: center;
-                text-decoration: none;
-                display: inline-block;
-                border-radius: 5px;
-                font-weight: bold;
-                transition: background-color 0.3s;
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+                font-family: Arial, sans-serif;
+                font-size: 14px;
               }
-              .download-button:hover {
-                background-color: #45a049;
+              
+              table th, table td {
+                border: 1px solid #ccc;
+                padding: 8px 12px;
+                text-align: center;
+              }
+              
+              table th {
+                background-color: #3498db;
+                color: white;
+                font-weight: bold;
+              }
+              
+              table tr:nth-child(even) {
+                background-color: #f2f2f2;
+              }
+              
+              table tr:hover {
+                background-color: #d6e9f8;
               }
               ")),
              # Wczytanie treści Markdown z pliku dashboard.md
-             includeMarkdown("dashboard.Rmd")
+             includeMarkdown("dashboard.md")
            )
            ),
-  tabPanel("APP", ui)  # ui z dumbellplot.R
+  tabPanel("Dashboard", ui)  # ui z dumbellplot.R
 )
 
 shinyApp(ui = ui, server = server)

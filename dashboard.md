@@ -48,10 +48,67 @@ Dodatkowo uwzględniono inne wydarzenia:
 ::: {.sub-section}
 ### 2.3. Źródła danych
 Dane giełdowe zostały pobrane z API Yahoo Finance. Mają następującą strukturę:
+<table border="1" cellpadding="5" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Open</th>
+      <th>High</th>
+      <th>Low</th>
+      <th>Close</th>
+      <th>Volume</th>
+      <th>Symbol</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2024-01-02</td>
+      <td>250.08</td>
+      <td>251.25</td>
+      <td>244.41</td>
+      <td>248.42</td>
+      <td>104654200</td>
+      <td>TSLA</td>
+    </tr>
+    <tr>
+      <td>2024-01-03</td>
+      <td>244.98</td>
+      <td>245.68</td>
+      <td>236.32</td>
+      <td>238.45</td>
+      <td>121082600</td>
+      <td>TSLA</td>
+    </tr>
+    <tr>
+      <td>2024-01-04</td>
+      <td>239.25</td>
+      <td>242.70</td>
+      <td>237.73</td>
+      <td>237.93</td>
+      <td>102629300</td>
+      <td>TSLA</td>
+    </tr>
+    <tr>
+      <td>2024-01-05</td>
+      <td>236.86</td>
+      <td>240.12</td>
+      <td>234.90</td>
+      <td>237.49</td>
+      <td>92379400</td>
+      <td>TSLA</td>
+    </tr>
+    <tr>
+      <td>2024-01-08</td>
+      <td>236.14</td>
+      <td>241.25</td>
+      <td>235.30</td>
+      <td>240.45</td>
+      <td>85166600</td>
+      <td>TSLA</td>
+    </tr>
+  </tbody>
+</table>
 :::
 :::
-|Header |Column 1 | Column 2 | Column 3  | 
-|:--- |:---- |:----:| ----:|
-|1. Row| is | is | is  |
-|2. Row| left | nicely | right  |
-|3. Row| aligned | centered | aligned  |  
+
+
