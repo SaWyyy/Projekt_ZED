@@ -90,16 +90,21 @@ ui <- fluidPage(
   ")),
     tags$style(HTML("
     .btn-red {
-      background-color: red;
+      background-color: #3498db;
       color: white;
-      border-color: darkred;
+      border-color: #2c3e50;
       margin: 5px;
       transition-duration: 0.3s;
     }
     .btn-red:hover {
-      background-color: darkred;
+      background-color: #2c3e50;
       color: white;
       transition-duration: 0.3s;
+    }
+    .btn-red:active,
+    .btn-red:focus {
+      background-color: #2c3e50;
+      color: white;
     }
   "))
   ),

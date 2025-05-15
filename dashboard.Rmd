@@ -1,0 +1,57 @@
+::: {.section-title}
+# Analiza zachowania instrumentów finansowych z uwzględnieniem największych wydarzeń geopolityczych na świecie z okresu od 1 stycznia 2024 do dnia dzisiejszego z naciskiem na wojnę celną
+:::
+::: {.boxed-section}
+## 1. Wprowadzenie
+Projekt ma na celu interaktywną analizę i wizualizację zachowania wybranych instrumentów finansowych w okresie od 1 stycznia 2024 do 12 maja 2025, ze szczególnym uwzględnieniem wpływu wojny celnej zainicjowanej przez Stany Zjednoczone oraz innych kluczowych wydarzeń geopolitycznych.
+:::
+::: {.boxed-section}
+## 2. Dane
+::: {.sub-section}
+### 2.1. Instrumenty finansowe
+Analiza obejmuje następujące instrumenty finansowe:
+- **TSLA**: Tesla
+- **NVDA**: Nvidia
+- **GC=F**: Złoto
+- **EEM**: Rynki wschodzące
+- **DX-Y.NYB**: Siła dolara
+- **DJT**: Spółka Trumpa
+- **BTC-USD**: Bitcoin
+- **^IXIC**: NASDAQ
+- **^GSPC**: S&P500
+- **^VIX**: Indeks strachu
+- **^HSI**: Indeks chiński
+- **MARA**: MARA
+:::
+::: {.sub-section}
+### 2.2. Wydarzenia geopolityczne
+Dane obejmują kluczowe wydarzenia związane z wojną celną oraz innymi istotnymi momentami:
+- **2025-02-01**: Początek wojny celnej – Trump ogłasza 10% cła na towary z Chin, 25% na Kanadę i Meksyk.
+- **2025-02-04**: Chiny odpowiadają cłami na węgiel, LNG, ropę, maszyny rolnicze i samochody.
+- **2025-02-13**: Zapowiedź ceł wzajemnych przez USA.
+- **2025-03-04**: Eskalacja ceł – USA podnosi cła na Chiny do 20%, Chiny odpowiadają.
+- **2025-03-10**: Chiny wprowadzają cła na żywność, powodując spadki na rynkach.
+- **2025-03-12**: Cła na stal i aluminium – USA podnosi cła do 25%, UE odpowiada.
+- **2025-04-02**: "Dzień Wyzwolenia" – USA wprowadza 34% cła na Chiny.
+- **2025-05-08**: Umowa z Wielką Brytanią – obniżenie ceł na samochody i stal.
+- **2025-05-12**: Deeskalacja z Chinami – 90-dniowe zawieszenie ceł.
+- **2025-05-12**: "Całkowity reset" stosunków handlowych z Chinami.
+:::
+::: {.sub-section}
+Dodatkowo uwzględniono inne wydarzenia:
+- **2024-07-14–16**: Zamach na Trumpa.
+- **2024-11-04–11**: Wybory w USA.
+- **2024-12-17–19**: Decyzja Fed ws. stóp procentowych.
+- **2024-07-31–08-06**: Podwyżka stóp procentowych w Japonii.
+- **2025-01-27**: Ogłoszenie DeepSeek.
+:::
+::: {.sub-section}
+### 2.3. Źródła danych
+Dane giełdowe zostały pobrane z API Yahoo Finance. Mają następującą strukturę:
+:::
+:::
+|Header |Column 1 | Column 2 | Column 3  | 
+|:--- |:---- |:----:| ----:|
+|1. Row| is | is | is  |
+|2. Row| left | nicely | right  |
+|3. Row| aligned | centered | aligned  |  
